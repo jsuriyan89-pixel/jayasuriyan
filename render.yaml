@@ -3,7 +3,7 @@ services:
     name: jayasuriyan-portfolio
     runtime: python
     buildCommand: ./build.sh
-    startCommand: gunicorn app:app
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     plan: free
     envVars:
       - key: PYTHON_VERSION
