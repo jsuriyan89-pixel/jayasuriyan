@@ -8,6 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "server": "python app.py",
+    "start": "python app.py",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },

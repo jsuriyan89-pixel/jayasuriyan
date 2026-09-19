@@ -19,8 +19,12 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
-  const showToast = (message) => {
-    setToast({ message });
+  const showToast = (toastInput, type = 'info', subtitle = null) => {
+    if (typeof toastInput === 'object' && toastInput !== null) {
+      setToast(toastInput);
+    } else {
+      setToast({ message: toastInput, type, subtitle });
+    }
   };
 
   const toggleTerminal = () => {

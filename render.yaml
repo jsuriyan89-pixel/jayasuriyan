@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: jayasuriyan-portfolio
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn app:app
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_RECEIVER
+        sync: false

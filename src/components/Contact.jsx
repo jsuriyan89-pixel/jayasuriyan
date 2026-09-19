@@ -1,25 +1,89 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle2, Globe } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle2, Globe, Loader2 } from 'lucide-react';
 import { personalInfo } from '../data/portfolioData';
 
 export default function Contact({ showToast }) {
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState('idle'); // idle | sending | success
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) {
-      showToast('Please complete all required fields.');
+    if (status === 'sending') return;
+
+    const trimmedName = formData.name.trim();
+    const trimmedEmail = formData.email.trim();
+    const trimmedSubject = formData.subject.trim();
+    const trimmedMessage = formData.message.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedSubject || !trimmedMessage) {
+      showToast({
+        title: '✕ Unable to send message.',
+        subtitle: 'Please fill in all required fields.',
+        type: 'error',
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      showToast({
+        title: '✕ Unable to send message.',
+        subtitle: 'Please enter a valid email address.',
+        type: 'error',
+      });
       return;
     }
 
     setStatus('sending');
-    setTimeout(() => {
-      setStatus('success');
-      showToast('🎉 Message sent successfully! Jayasuriyan will reply shortly.');
-      setFormData({ name: '', email: '', subject: '', message: '' });
+
+    try {
+      const payload = JSON.stringify({
+        name: trimmedName,
+        email: trimmedEmail,
+        subject: trimmedSubject,
+        message: trimmedMessage,
+      });
+      const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers,
+        body: payload,
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && result.success) {
+        setStatus('success');
+        showToast({
+          title: '✓ Message sent successfully!',
+          subtitle: "I'll get back to you soon.",
+          type: 'success',
+        });
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setTimeout(() => setStatus('idle'), 4000);
+      } else {
+        setStatus('error');
+        showToast({
+          title: '✕ Unable to send message.',
+          subtitle: result.error || result.message || 'Please try again later.',
+          type: 'error',
+        });
+        setTimeout(() => setStatus('idle'), 5000);
+      }
+    } catch (err) {
+      console.error('Contact submission error:', err);
+      setStatus('error');
+      showToast({
+        title: '✕ Unable to send message.',
+        subtitle: 'Please try again later.',
+        type: 'error',
+      });
       setTimeout(() => setStatus('idle'), 4000);
-    }, 1500);
+    }
   };
 
   return (
@@ -111,6 +175,7 @@ export default function Contact({ showToast }) {
                     <input
                       type="text"
                       required
+                      maxLength={100}
                       placeholder="Your Name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -125,6 +190,7 @@ export default function Contact({ showToast }) {
                     <input
                       type="email"
                       required
+                      maxLength={254}
                       placeholder="Your Email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -139,6 +205,8 @@ export default function Contact({ showToast }) {
                   </label>
                   <input
                     type="text"
+                    required
+                    maxLength={200}
                     placeholder="Subject"
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
@@ -153,6 +221,7 @@ export default function Contact({ showToast }) {
                   <textarea
                     required
                     rows={5}
+                    maxLength={5000}
                     placeholder="Your Message"
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -163,14 +232,17 @@ export default function Contact({ showToast }) {
                 <button
                   type="submit"
                   disabled={status === 'sending'}
-                  className="w-full py-4 rounded-xl bg-amber-500 text-black font-extrabold text-sm uppercase tracking-wider hover:bg-amber-400 shadow-xl shadow-amber-500/25 transition-all duration-200 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-4 rounded-xl bg-amber-500 text-black font-extrabold text-sm uppercase tracking-wider hover:bg-amber-400 shadow-xl shadow-amber-500/25 transition-all duration-200 active:scale-98 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {status === 'sending' ? (
-                    <span>SENDING MESSAGE...</span>
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Sending...</span>
+                    </>
                   ) : status === 'success' ? (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-black" />
-                      <span>MESSAGE SENT!</span>
+                      <span>Message Sent!</span>
                     </>
                   ) : (
                     <>
