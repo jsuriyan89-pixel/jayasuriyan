@@ -28,7 +28,14 @@ def ensure_dotenv_exists():
 ensure_dotenv_exists()
 load_dotenv(DOTENV_PATH)
 
-app = Flask(__name__)
+DIST_DIR = os.path.join(PROJECT_ROOT, "dist")
+
+app = Flask(
+    __name__,
+    static_folder=DIST_DIR,
+    static_url_path="",
+    template_folder=DIST_DIR
+)
 # Enable CORS for /api/ routes
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -217,15 +224,22 @@ def health():
     }), 200
 
 
-DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
+@app.route("/")
+def serve_index():
+    index_file = os.path.join(DIST_DIR, "index.html")
+    if os.path.isfile(index_file):
+        return send_from_directory(DIST_DIR, "index.html")
+    return jsonify({
+        "status": "error",
+        "message": "Frontend build not found. Run 'npm run build' to generate dist folder."
+    }), 404
 
 
-@app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
-def serve_frontend(path):
+def serve_frontend_assets(path):
     # Never intercept /api routes
     if path.startswith("api/") or path == "api":
-        return jsonify({"error": "Not Found"}), 404
+        return jsonify({"error": "API route not found"}), 404
 
     # Normalize if requested under /jayasuriyan/ base prefix
     clean_path = path
@@ -245,14 +259,14 @@ def serve_frontend(path):
         if os.path.isfile(svg_favicon):
             return send_from_directory(DIST_DIR, "favicon.svg", mimetype="image/svg+xml")
 
-    # Fallback to SPA index.html
+    # Fallback to SPA index.html for client-side routing
     index_file = os.path.join(DIST_DIR, "index.html")
     if os.path.isfile(index_file):
         return send_from_directory(DIST_DIR, "index.html")
 
     return jsonify({
         "service": "portfolio-backend",
-        "message": "Frontend build not found. Run 'npm run build' to generate dist folder."
+        "message": "Page not found"
     }), 404
 
 
